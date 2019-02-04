@@ -1,15 +1,15 @@
-const inject = Inject();
-const module = Module();
-const component = Component();
+const inject = _Inject();
+const module = _Module();
+const component = _Component();
 
-class Inject {
-  const Inject();
+class _Inject {
+  const _Inject();
 }
 
-class Module {
-  const Module();
+class _Module {
+  const _Module();
 }
 
-class Component {
-  const Component();
+class _Component {
+  const _Component();
 }
