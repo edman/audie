@@ -8,9 +8,8 @@ builders:
   diversion:
     target: ":diversion"
     import: "package:diversion/builder.dart"
-    builder_factories: ["diversionBuilder"]
+    builder_factories: ["builderFactory"]
     build_extensions: {".dart": [".diversion.g.part"]}
     auto_apply: dependents
     build_to: cache
     applies_builders: ["source_gen|combining_builder"]
-
