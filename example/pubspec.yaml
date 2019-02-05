@@ -6,13 +6,11 @@ environment:
   sdk: '>=2.0.0 <3.0.0'
 
 dependencies:
-  # TODO: remove when you split annotations into a separate package
   diversion:
-    path: ../
+    path: ../diversion
 
 dev_dependencies:
+  diversion_generator:
+    path: ../diversion_generator
   build_runner: ^1.0.0
-  # TODO: uncomment later
-  #diversion:
-  #  path: ../
 

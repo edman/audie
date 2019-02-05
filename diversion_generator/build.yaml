@@ -1,0 +1,15 @@
+targets:
+  $default:
+    builders:
+      diversion_generator|diversion_generator:
+        enabled: true
+
+builders:
+  diversion_generator:
+    target: ":diversion_generator"
+    import: "package:diversion_generator/builder.dart"
+    builder_factories: ["builderFactory"]
+    build_extensions: {".dart": [".diversion_generator.g.part"]}
+    auto_apply: dependents
+    build_to: cache
+    applies_builders: ["source_gen|combining_builder"]

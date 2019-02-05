@@ -1,4 +1,4 @@
-name: diversion
+name: diversion_generator
 version: 0.0.1
 author: Edman Anjos <edmanjos@gmail.com>
 description: Compile-time dependency injection library for Dart.
@@ -8,6 +8,8 @@ environment:
   sdk: '>=2.0.0 <3.0.0'
 
 dependencies:
+  diversion:
+    path: ../diversion
   source_gen: ^0.9.4
   analyzer: '>=0.33.3 <0.35.0'
   analyzer_plugin: '>=0.0.1-alpha.5 <0.0.1-alpha.7'

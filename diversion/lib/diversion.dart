@@ -1,5 +1,7 @@
 const inject = _Inject();
+
 const module = _Module();
+
 const component = _Component();
 
 class _Inject {

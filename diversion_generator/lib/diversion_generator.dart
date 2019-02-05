@@ -3,11 +3,9 @@ import 'dart:async';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:build/build.dart';
-import 'package:diversion/src/annotations.dart';
-import 'package:diversion/src/engine.dart';
+import 'package:diversion/diversion.dart';
+import 'package:diversion_generator/src/engine.dart';
 import 'package:source_gen/source_gen.dart';
-
-export 'src/annotations.dart';
 
 final engine = DepEngine();
 
