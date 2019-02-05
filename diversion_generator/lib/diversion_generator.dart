@@ -48,13 +48,10 @@ Future<String> _generateComponent(ClassElement component) async {
   String makers = '';
   await for (final method in _processComponentClass(component))
     makers += _generateMethod(method);
-  for (final method in component.methods.where((m) => m.isAbstract)) {
-    out += '@override\n';
-    out += '${method.returnType} ${method.name}() {\n';
-    out += 'return ${_makerName(method.returnType)}();\n';
-    out += '}\n';
-    method.name;
-  }
+  for (final method in component.methods.where((m) => m.isAbstract))
+    out += '@override\n' +
+        '${method.returnType} ${method.name}() => ' +
+        '${_makerName(method.returnType)}();\n\n';
   out += makers;
   out += "}\n";
   return out;
