@@ -9,13 +9,10 @@ part 'coffee.g.dart';
 abstract class CoffeeShop {
   CoffeeMaker maker();
 
+  Pump providePump(Thermosiphon pump) => pump;
+
   CoffeeShop._();
   factory CoffeeShop() => _$CoffeeShop();
-}
-
-@module
-abstract class DripCoffeeModule {
-  static Pump providePump(Thermosiphon pump) => pump;
 }
 
 @inject

@@ -27,6 +27,9 @@ abstract class CreationMethod {
   final FunctionTypedElement function;
   final Iterable<DartType> dependencies;
 
+  /// A creation method is said to be simple if it takes no parameters.
+  bool get isSimple => function.parameters.isEmpty;
+
   @override
   String toString() => '[${dependencies}]';
 }
@@ -37,11 +40,14 @@ class Constructor extends CreationMethod {
 }
 
 class ProviderFunction extends CreationMethod {
-  final ClassElement scope;
+  ProviderFunction(
+    this.scope,
+    MethodElement function,
+    Iterable<DartType> dependencies,
+  ) : super(function, dependencies);
 
-  ProviderFunction(this.scope, FunctionTypedElement function,
-      Iterable<DartType> dependencies)
-      : super(function, dependencies);
+  final ClassElement scope;
+  MethodElement get function => super.function;
 }
 
 class DepEngine {
@@ -57,7 +63,7 @@ class DepEngine {
     if (_blockers.containsKey(sig)) _blockers[sig].complete(sig);
   }
 
-  void registerProvider(ClassElement scope, FunctionTypedElement function) {
+  void registerProvider(ClassElement scope, MethodElement function) {
     final sig = function.returnType;
     _registry[sig] = ProviderFunction(
         scope, function, function.parameters.map((p) => p.type));

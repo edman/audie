@@ -10,7 +10,6 @@ import 'package:source_gen/source_gen.dart';
 final engine = DepEngine();
 
 final injectType = TypeChecker.fromRuntime(inject.runtimeType);
-final moduleType = TypeChecker.fromRuntime(module.runtimeType);
 final componentType = TypeChecker.fromRuntime(component.runtimeType);
 
 class DiversionGenerator extends Generator {
@@ -27,11 +26,6 @@ class DiversionGenerator extends Generator {
         .annotatedWith(injectType)
         .where((a) => a.element is ClassElement)
         .forEach((annotated) => _processInjectClass(annotated.element));
-    // Visit all classes annotated with @module.
-    library
-        .annotatedWith(moduleType)
-        .where((a) => a.element is ClassElement)
-        .forEach((annotated) => _processModuleClass(annotated.element));
     // Visit all classes annotated with @component.
     final components = library
         .annotatedWith(componentType)
@@ -50,39 +44,50 @@ class DiversionGenerator extends Generator {
 
 Future<String> _generateComponent(ClassElement component) async {
   String out = 'class _\$${component.name} implements ${component.name} {\n';
-  for (final method in component.methods) {
+  log('COMPONENT_GENERATE: name=${component}');
+  String makers = '';
+  await for (final method in _processComponentClass(component))
+    makers += _generateMethod(method);
+  for (final method in component.methods.where((m) => m.isAbstract)) {
     out += '@override\n';
     out += '${method.returnType} ${method.name}() {\n';
-    out += 'return _make${method.returnType}();\n';
+    out += 'return ${_makerName(method.returnType)}();\n';
     out += '}\n';
     method.name;
   }
-  await for (final method in _processComponentClass(component))
-    out += _generateMethod(method);
+  out += makers;
   out += "}\n";
   return out;
 }
+
+String _makerName(DartType type) =>
+    engine.registry[type].isSimple ? type.name : '_make${type.name}';
 
 String _variableName(DartType type) =>
     type.name[0].toLowerCase() + type.name.substring(1);
 
 String _generateMethod(Signature method) {
-  String out = '${method.type} _make${method.type}() {\n';
-  final variableNames = List<String>();
+  log('METHOD_GENERATE: method=${method}');
+  // Noop if maker is a simple function call.
+  if (engine.registry[method.type].isSimple) return '';
+  String out = '${method.type} ${_makerName(method.type)}() {\n';
+  final variables = List<String>();
   for (final param in method.parameters) {
     final name = _variableName(param);
-    variableNames.add(name);
-    out += 'final $name = _make$param();\n';
+    variables.add(name);
+    out += 'final $name = ${_makerName(param)}();\n';
   }
 
   final create = engine.registry[method.type];
   String function = '';
-  if (create is ProviderFunction)
+  if (create is ProviderFunction && create.function.isStatic)
     function = '${create.scope.name}.${create.function.name}';
+  else if (create is ProviderFunction)
+    function = '${create.function.name}';
   else
     function = '${create.function.returnType}';
 
-  out += 'return ${function}(${variableNames.join(', ')});\n';
+  out += 'return ${function}(${variables.join(', ')});\n';
   out += '}\n';
   return out;
 }
@@ -99,21 +104,20 @@ void _processInjectConstructor(ConstructorElement constructor) {
   engine.registerConstructor(constructor);
 }
 
-void _processModuleClass(ClassElement element) {
-  log('MODULE: name=${element.name} kind=${element.kind}');
-  element.methods.forEach((method) => _processProviderMethod(element, method));
+Stream<Signature> _processComponentClass(ClassElement element) async* {
+  log('COMPONENT: name=${element.name} kind=${element.kind}\nmethods=${element.methods}');
+  // Concrete methods in components are considered providers.
+  for (final method in element.methods.where((m) => !m.isAbstract))
+    _processProviderMethod(element, method);
+  // Abstract methods in components need to be implemented by diversion.
+  for (final method in element.methods.where((m) => m.isAbstract))
+    await for (final signature in _processComponentFunction(method))
+      yield signature;
 }
 
 void _processProviderMethod(ClassElement scope, MethodElement method) {
   log('PROVIDER_METHOD: method=$method ');
   engine.registerProvider(scope, method);
-}
-
-Stream<Signature> _processComponentClass(ClassElement element) async* {
-  log('COMPONENT: name=${element.name} kind=${element.kind}');
-  for (final method in element.methods)
-    await for (final signature in _processComponentFunction(method))
-      yield signature;
 }
 
 Stream<Signature> _processComponentFunction(
