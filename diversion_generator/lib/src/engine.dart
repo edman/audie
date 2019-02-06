@@ -4,24 +4,7 @@ import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:meta/meta.dart';
 
-/// Describe the signature of an injectable entity.
 @immutable
-class Signature {
-  Signature(this.type, this.parameters);
-
-  final DartType type;
-  final Iterable<DartType> parameters;
-
-  @override
-  int get hashCode => type.hashCode;
-
-  @override
-  bool operator ==(other) => other is Signature && type == other.type;
-
-  @override
-  String toString() => '$type:[$parameters]';
-}
-
 abstract class CreationMethod {
   CreationMethod(this.function, this.dependencies);
   final FunctionTypedElement function;
@@ -30,13 +13,18 @@ abstract class CreationMethod {
   /// A creation method is said to be simple if it takes no parameters.
   bool get isSimple => function.parameters.isEmpty;
 
+  String get name;
+  String get helperName => isSimple ? name : '_create${function.returnType}';
+
   @override
-  String toString() => '[${dependencies}]';
+  String toString() => '$name${dependencies}';
 }
 
 class Constructor extends CreationMethod {
   Constructor(FunctionTypedElement function, Iterable<DartType> dependencies)
       : super(function, dependencies);
+  @override
+  String get name => '${function.returnType}';
 }
 
 class ProviderFunction extends CreationMethod {
@@ -47,43 +35,55 @@ class ProviderFunction extends CreationMethod {
   ) : super(function, dependencies);
 
   final ClassElement scope;
+  @override
   MethodElement get function => super.function;
+  @override
+  String get name =>
+      function.isStatic ? '${scope.name}.${function.name}' : '${function.name}';
 }
 
 class DepEngine {
   final _registry = Map<DartType, CreationMethod>();
   Map<DartType, CreationMethod> get registry => _registry;
 
-  final _blockers = Map<DartType, Completer<DartType>>();
+  final _blockers = Map<DartType, Completer<CreationMethod>>();
 
-  void registerConstructor(ConstructorElement function) {
-    final sig = function.returnType;
-    _registry[sig] =
-        Constructor(function, function.parameters.map((p) => p.type));
-    if (_blockers.containsKey(sig)) _blockers[sig].complete(sig);
+  Future<CreationMethod> _block(DartType type) => _registry.containsKey(type)
+      ? Future.value(_registry[type])
+      : _blockers.putIfAbsent(type, () => Completer<CreationMethod>()).future;
+
+  void _unblock(DartType type, CreationMethod creator) =>
+      _blockers[type]?.complete(creator);
+
+  void _register(DartType type, CreationMethod creator) {
+    _registry[type] = creator;
+    _unblock(type, creator);
   }
 
-  void registerProvider(ClassElement scope, MethodElement function) {
-    final sig = function.returnType;
-    _registry[sig] = ProviderFunction(
-        scope, function, function.parameters.map((p) => p.type));
-    if (_blockers.containsKey(sig)) _blockers[sig].complete(sig);
-  }
+  void registerConstructor(ConstructorElement function) => _register(
+        function.returnType,
+        Constructor(
+          function,
+          function.parameters.map((p) => p.type),
+        ),
+      );
 
-  Stream<Signature> recipe(DartType type) async* {
-    if (!_registry.containsKey(type))
-      await _blockers.putIfAbsent(type, () => Completer<DartType>()).future;
-    final deps = _registry[type].dependencies;
-    final seen = Set<Signature>();
-    for (final dep in deps) {
-      await for (final d in recipe(dep)) {
-        if (!seen.contains(d)) {
-          yield d;
-          seen.add(d);
-        }
-      }
-    }
-    yield Signature(type, deps);
+  void registerProvider(ClassElement scope, MethodElement function) =>
+      _register(
+        function.returnType,
+        ProviderFunction(
+          scope,
+          function,
+          function.parameters.map((p) => p.type),
+        ),
+      );
+
+  Stream<CreationMethod> recipe(DartType type) async* {
+    final creator = await _block(type);
+    final seen = Set<CreationMethod>();
+    for (final dep in creator.dependencies)
+      await for (final d in recipe(dep)) if (seen.add(d)) yield d;
+    yield creator;
   }
 
   bool contains(DartType type) {
