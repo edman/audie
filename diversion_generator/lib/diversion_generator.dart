@@ -17,12 +17,11 @@ final componentType = TypeChecker.fromRuntime(component.runtimeType);
 class DiversionGenerator extends Generator {
   Future<String> generate(LibraryReader library, BuildStep buildStep) async {
     // Visit all constructors annotated with @inject.
-    for (final element in library.allElements.whereType<ClassElement>()) {
+    for (final element in library.allElements.whereType<ClassElement>())
       for (final constructor in element.constructors) {
         final annotated = injectType.firstAnnotationOf(constructor);
         if (annotated != null) _processInjectConstructor(constructor);
       }
-    }
     // Visit all classes annotated with @inject.
     library
         .annotatedWith(injectType)
@@ -47,13 +46,9 @@ Future<String> _generateComponent(ClassElement component) async {
   String out = 'class _\$${component.name} extends ${component.name} {\n';
   String makers = '';
   await for (final method in _processComponentClass(component)) {
-    pre(method != null, 'null method in _generateComponent ');
     makers += _generateHelperMethod(method);
   }
   for (final method in component.methods.where((m) => m.isAbstract)) {
-    pre(method != null, 'not null');
-    pre(method.returnType != null, 'ret not null');
-    pre(engine.registry[method.returnType] != null, 'entry not null');
     out += '@override\n' +
         '${method.returnType} ${method.name}() => ' +
         '${engine.registry[method.returnType].helperName}();\n\n';
@@ -69,7 +64,6 @@ String _variableName(DartType type) =>
 
 String _generateHelperMethod(Creator creator) {
   log('METHOD_GENERATE: method=${creator}');
-  pre(creator != null, 'null creator in _generateMethod');
   // Generate nothing if maker is a simple function call.
   if (creator.isSimple) return '';
   String out = '${creator.function.returnType} ${creator.helperName}() {\n';
@@ -112,8 +106,7 @@ void _processProviderMethod(ClassElement scope, MethodElement method) {
   engine.registerProvider(scope, method);
 }
 
-Stream<Creator> _processComponentFunction(
-    FunctionTypedElement function) {
+Stream<Creator> _processComponentFunction(FunctionTypedElement function) {
   log('COMPONENT_METHOD: method=${function}');
   return engine.recipe(function.returnType);
 }

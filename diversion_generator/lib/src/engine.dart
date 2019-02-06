@@ -48,11 +48,6 @@ class DepEngine {
     yield creator;
   }
 
-  bool contains(DartType type) {
-    return _registry.containsKey(type) &&
-        _registry[type].dependencies.every((dep) => contains(dep));
-  }
-
   @override
   String toString() => '$_registry';
 }
