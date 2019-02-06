@@ -5,6 +5,7 @@ import 'package:analyzer/dart/element/type.dart';
 import 'package:async/async.dart';
 import 'package:build/build.dart';
 import 'package:diversion/diversion.dart';
+import 'package:diversion_generator/src/creator.dart';
 import 'package:diversion_generator/src/engine.dart';
 import 'package:source_gen/source_gen.dart';
 
@@ -66,7 +67,7 @@ Future<String> _generateComponent(ClassElement component) async {
 String _variableName(DartType type) =>
     type.name[0].toLowerCase() + type.name.substring(1);
 
-String _generateHelperMethod(CreationMethod creator) {
+String _generateHelperMethod(Creator creator) {
   log('METHOD_GENERATE: method=${creator}');
   pre(creator != null, 'null creator in _generateMethod');
   // Generate nothing if maker is a simple function call.
@@ -95,7 +96,7 @@ void _processInjectConstructor(ConstructorElement constructor) {
   engine.registerConstructor(constructor);
 }
 
-Stream<CreationMethod> _processComponentClass(ClassElement element) {
+Stream<Creator> _processComponentClass(ClassElement element) {
   log('COMPONENT: name=${element.name} kind=${element.kind}\nmethods=${element.methods}');
   // Concrete methods in components are considered providers.
   for (final method in element.methods.where((m) => !m.isAbstract))
@@ -111,7 +112,7 @@ void _processProviderMethod(ClassElement scope, MethodElement method) {
   engine.registerProvider(scope, method);
 }
 
-Stream<CreationMethod> _processComponentFunction(
+Stream<Creator> _processComponentFunction(
     FunctionTypedElement function) {
   log('COMPONENT_METHOD: method=${function}');
   return engine.recipe(function.returnType);
