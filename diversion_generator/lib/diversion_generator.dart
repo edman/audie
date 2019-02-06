@@ -43,7 +43,7 @@ class DiversionGenerator extends Generator {
 
 Future<String> _generateComponent(ClassElement component) async {
   log('COMPONENT_GENERATE: component=${component}');
-  String out = 'class _\$${component.name} implements ${component.name} {\n';
+  String out = 'class _\$${component.name} extends ${component.name} {\n';
   String makers = '';
   await for (final method in _processComponentClass(component)) {
     pre(method != null, 'null method in _generateComponent ');
@@ -58,6 +58,7 @@ Future<String> _generateComponent(ClassElement component) async {
         '${engine.registry[method.returnType].helperName}();\n\n';
   }
   out += makers;
+  out += '_\$${component.name}() : super._();\n';
   out += "}\n";
   return out;
 }

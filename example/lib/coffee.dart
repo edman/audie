@@ -12,7 +12,7 @@ abstract class CoffeeShop {
   Pump providePump(Thermosiphon pump) => pump;
 
   CoffeeShop._();
-  factory CoffeeShop() => _$CoffeeShop();
+  factory CoffeeShop() = _$CoffeeShop;
 }
 
 @inject
