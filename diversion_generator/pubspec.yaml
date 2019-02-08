@@ -5,7 +5,7 @@ description: Compile-time dependency injection library for Dart.
 homepage: http://github.com/edman/diversion
 
 environment:
-  sdk: '>=2.0.0 <3.0.0'
+  sdk: '>=2.1.0 <3.0.0'
 
 dependencies:
   diversion:
@@ -20,8 +20,7 @@ dependencies:
   quiver: '>=0.21.0 <3.0.0'
 
 dev_dependencies:
-  build_test: ^0.10.3
+  build_test: ^0.10.6
   build_runner: ^1.0.0
   logging: ^0.11.0
   test: ^1.0.0
-
