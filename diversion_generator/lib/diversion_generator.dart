@@ -17,11 +17,10 @@ final componentType = TypeChecker.fromRuntime(component.runtimeType);
 class DiversionGenerator extends Generator {
   Future<String> generate(LibraryReader library, BuildStep buildStep) async {
     // Visit all constructors annotated with @inject.
-    for (final element in library.allElements.whereType<ClassElement>())
-      for (final constructor in element.constructors) {
-        final annotated = injectType.firstAnnotationOf(constructor);
-        if (annotated != null) _processInjectConstructor(constructor);
-      }
+    for (final clazz in library.allElements.whereType<ClassElement>())
+      for (final constructor in clazz.constructors)
+        if (injectType.hasAnnotationOf(constructor))
+          _processInjectConstructor(constructor);
     // Visit all classes annotated with @inject.
     library
         .annotatedWith(injectType)
