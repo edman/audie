@@ -204,6 +204,7 @@ And this one for vscode:
 ## TODO
 
 - Error on @inject in class with multiple constructors
+- Error on @inject in multiple constructors
 - Ignore void provider methods in components.
 - Error on void provider methods in components.
 - Error on dynamic provider methods in components.
