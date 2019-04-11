@@ -7,6 +7,7 @@ import 'package:build/build.dart';
 import 'package:audie/audie.dart';
 import 'package:audie_generator/src/creator.dart';
 import 'package:audie_generator/src/engine.dart';
+import 'package:audie_generator/src/errors.dart';
 import 'package:source_gen/source_gen.dart';
 
 final engine = DepEngine();
@@ -16,6 +17,22 @@ final componentType = TypeChecker.fromRuntime(component.runtimeType);
 
 class AudieGenerator extends Generator {
   Future<String> generate(LibraryReader library, BuildStep buildStep) async {
+    final outs = StringBuffer();
+    log.info('HERE: starting on ${library.element.name}');
+
+    // Check preconditions.
+    try {
+      checkErrors(library);
+    } on InvalidGenerationSourceError catch (e, st) {
+      outs.writeln(_error(e.message));
+      logs('HIER did try to log');
+      log.severe(
+          'Error in AudieGenerator for '
+          '${library.element.source.fullName}.',
+          e,
+          st);
+      return outs.toString();
+    }
     // Visit all constructors annotated with @inject.
     for (final clazz in library.allElements.whereType<ClassElement>())
       for (final constructor in clazz.constructors)
@@ -31,17 +48,20 @@ class AudieGenerator extends Generator {
         .annotatedWith(componentType)
         .where((a) => a.element is ClassElement);
 
-    String out = '';
+    // String out = '';
     for (final annotated in components)
-      out += await _generateComponent(annotated.element as ClassElement);
+      // out += await _generateComponent(annotated.element as ClassElement);
+      outs.writeln(await _generateComponent(annotated.element as ClassElement));
 
-    log('\n$out');
-    return out;
+    // log('\n$out');
+    // return out;
+    logs('\n$outs');
+    return outs.toString();
   }
 }
 
 Future<String> _generateComponent(ClassElement component) async {
-  log('COMPONENT_GENERATE: component=${component}');
+  logs('COMPONENT_GENERATE: component=${component}');
   String out = 'class _\$${component.name} extends ${component.name} {\n';
 
   Set<Creator> creators = Set<Creator>();
@@ -69,7 +89,7 @@ String _variableName(DartType type) =>
     type.name[0].toLowerCase() + type.name.substring(1);
 
 String _generateHelperMethod(Creator creator) {
-  log('METHOD_GENERATE: method=${creator}');
+  logs('METHOD_GENERATE: method=${creator}');
   // Generate nothing if maker is a simple function call.
   if (creator.isSimple) return '';
   String out = '${creator.function.returnType} ${creator.helperName}() {\n';
@@ -85,19 +105,20 @@ String _generateHelperMethod(Creator creator) {
 }
 
 void _processInjectClass(ClassElement element) {
-  log('INJECT: class=${element.name} ');
+  logs('INJECT: class=${element.name} ');
   element.constructors.forEach((constructor) {
     _processInjectConstructor(constructor);
   });
 }
 
 void _processInjectConstructor(ConstructorElement constructor) {
-  log('INJECT_CONSTRUCTOR: constructor=$constructor ');
+  logs('INJECT_CONSTRUCTOR: constructor=$constructor ');
   engine.registerConstructor(constructor);
 }
 
 Stream<Creator> _processComponentClass(ClassElement element) {
-  log('COMPONENT: name=${element.name} kind=${element.kind}\nmethods=${element.methods}');
+  logs(
+      'COMPONENT: name=${element.name} kind=${element.kind}\nmethods=${element.methods}');
   // Concrete methods in components are considered providers.
   for (final method in element.methods.where((m) => !m.isAbstract))
     _processProviderMethod(element, method);
@@ -108,12 +129,12 @@ Stream<Creator> _processComponentClass(ClassElement element) {
 }
 
 void _processProviderMethod(ClassElement scope, MethodElement method) {
-  log('PROVIDER_METHOD: method=$method ');
+  logs('PROVIDER_METHOD: method=$method ');
   engine.registerProvider(scope, method);
 }
 
 Stream<Creator> _processComponentFunction(FunctionTypedElement function) {
-  log('COMPONENT_METHOD: method=${function}');
+  logs('COMPONENT_METHOD: method=${function}');
   return engine.recipe(function.returnType);
 }
 
@@ -121,8 +142,14 @@ void pre(bool condition, String message) {
   if (!condition) throw ArgumentError('precondition error: $message');
 }
 
-void log(msg) {
+void logs(msg) {
   if (msg.toString().trim().isEmpty) return;
   final div = '----------------------------------';
   print('$div\n$msg\n$div');
+}
+
+String _error(String message) {
+  final lines = '$message'.split('\n');
+  final indented = lines.skip(1).map((l) => '//        $l'.trim()).join('\n');
+  return '// Error: ${lines.first}\n$indented';
 }
