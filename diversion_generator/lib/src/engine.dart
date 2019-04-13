@@ -14,8 +14,10 @@ class DepEngine {
       ? Future.value(_registry[type])
       : _blockers.putIfAbsent(type, () => Completer<Creator>()).future;
 
-  void _unblock(DartType type, Creator creator) =>
+  void _unblock(DartType type, Creator creator) {
       _blockers[type]?.complete(creator);
+      _blockers.remove(type);
+  }
 
   void _register(DartType type, Creator creator) {
     _registry[type] = creator;
