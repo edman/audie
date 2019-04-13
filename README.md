@@ -203,6 +203,7 @@ And this one for vscode:
 
 ## TODO
 
+- Find a better solution to optional parameters
 - Error on @inject in class with multiple constructors
 - Error on @inject in multiple constructors
 - Ignore void provider methods in components.
@@ -213,6 +214,10 @@ And this one for vscode:
 - Sample showcasing testability.
 - Some tests?
 - Configure CI.
+
+## TODO tests
+
+- Two classes with the same dependency
 
 ### Next features..
 - Field injection

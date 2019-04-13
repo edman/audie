@@ -24,9 +24,10 @@ class DepEngine {
 
   void registerConstructor(ConstructorElement function) => _register(
         function.returnType,
+        // Filter out optional parameters (including optional positional).
         Constructor(
           function,
-          function.parameters.map((p) => p.type),
+          function.parameters.where((p) => p.isNotOptional).map((p) => p.type),
         ),
       );
 

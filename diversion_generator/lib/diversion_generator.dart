@@ -43,16 +43,23 @@ class DiversionGenerator extends Generator {
 Future<String> _generateComponent(ClassElement component) async {
   log('COMPONENT_GENERATE: component=${component}');
   String out = 'class _\$${component.name} extends ${component.name} {\n';
-  String makers = '';
-  await for (final method in _processComponentClass(component)) {
-    makers += _generateHelperMethod(method);
+
+  Set<Creator> creators = Set<Creator>();
+  await for (final creator in _processComponentClass(component)) {
+    creators.add(creator);
   }
+
+  String outCreators = '';
+  creators.forEach((creator) {
+    outCreators += _generateHelperMethod(creator);
+  });
+
   for (final method in component.methods.where((m) => m.isAbstract)) {
     out += '@override\n' +
         '${method.returnType} ${method.name}() => ' +
         '${engine.registry[method.returnType].helperName}();\n\n';
   }
-  out += makers;
+  out += outCreators;
   out += '_\$${component.name}() : super._();\n';
   out += "}\n";
   return out;
@@ -67,10 +74,10 @@ String _generateHelperMethod(Creator creator) {
   if (creator.isSimple) return '';
   String out = '${creator.function.returnType} ${creator.helperName}() {\n';
   final variables = List<String>();
-  for (final param in creator.function.parameters) {
-    final name = _variableName(param.type);
+  for (final param in creator.dependencies) {
+    final name = _variableName(param);
     variables.add(name);
-    out += 'final $name = ${engine.registry[param.type].helperName}();\n';
+    out += 'final $name = ${engine.registry[param].helperName}();\n';
   }
   out += 'return ${creator.name}(${variables.join(', ')});\n';
   out += '}\n';
