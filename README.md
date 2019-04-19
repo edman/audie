@@ -203,6 +203,10 @@ And this one for vscode:
 
 ## TODO
 
+- Bug: provider named after return type
+  - Firestore firestore() => Firestore.instance;
+- Bug: sometimes gened code does not update when changing a constructor
+- Runtime parameters
 - Find a better solution to optional parameters
 - Error on @inject in class with multiple constructors
 - Error on @inject in multiple constructors
