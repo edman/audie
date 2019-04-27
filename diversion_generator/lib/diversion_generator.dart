@@ -122,6 +122,7 @@ void pre(bool condition, String message) {
 }
 
 void log(msg) {
+  if (msg.toString().trim().isEmpty) return;
   final div = '----------------------------------';
   print('$div\n$msg\n$div');
 }
