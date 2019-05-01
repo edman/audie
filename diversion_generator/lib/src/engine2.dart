@@ -1,6 +1,7 @@
 import 'package:analyzer/dart/element/type.dart';
 import 'package:diversion_generator/src/creator2.dart';
 import 'package:diversion_generator/src/model.dart';
+import 'package:diversion_generator/src/object_graph.dart';
 import 'package:rxdart/rxdart.dart';
 
 class Engine {
@@ -20,6 +21,7 @@ class Engine {
   static final Engine instance = Engine._()
     ..sourceSet.listen((s) => print('sourceSet $s'))
     ..engineData.listen((e) => print('engine $e'))
+    ..componentStatuses.listen((cs) => cs.forEach((c) => print('graph ${c.graph}')))
     ..feasibleComponents.listen((c) => print('HERE! $c'));
   // ..globalCreators.listen(print);
 
@@ -38,9 +40,6 @@ class Engine {
   Stream<EngineData> get engineData => Observable.combineLatest2(
       components, globalCreators, (c, g) => EngineData(c, g));
 
-  // Stream<Map<ComponentData, ComponentStatus>> get componentStatuses =>
-  //     engineData.map((e) => Map.fromIterable(e.components,
-  //         value: (c) => c.reachableCreators + e.globalCreators));
   Stream<List<ComponentStatus>> get componentStatuses => engineData.map((e) => e
       .components
       .map((c) => ComponentStatus(c, e.globalCreators + c.reachableCreators))
@@ -48,7 +47,7 @@ class Engine {
 
   Stream<List<ComponentData>> get feasibleComponents =>
       componentStatuses.map((statuses) =>
-          statuses.where((s) => s.isFeasible).map((s) => s.component).toList());
+          statuses.where((s) => s.isSatisfiable).map((s) => s.component).toList());
 
   // Stream<Map<ComponentData, ComponentGenDescription>> get output;
 }
@@ -77,18 +76,21 @@ class MethodGenDescription {
 }
 
 class ComponentStatus {
-  const ComponentStatus(this.component, this.reachableCreators);
+  ComponentStatus(this.component, this.reachableCreators)
+      : graph = ObjectGraph(
+            component.abstractDependencies.toSet(), reachableCreators.toSet());
   final ComponentData component;
   final List<Creator> reachableCreators;
+  final ObjectGraph graph;
 
   List<DartType> get _reachableTypes =>
       reachableCreators.map((c) => c.createdType).toList();
 
-  bool get isFeasible =>
-      !component.dependencies.any((d) => !_reachableTypes.contains(d));
+  bool get isSatisfiable =>
+      graph.isSatisfiable;
 
   ComponentGenDescription describe() {
-    if (!isFeasible)
+    if (!isSatisfiable)
       throw StateError('No known description for component $component');
 
     return null;
