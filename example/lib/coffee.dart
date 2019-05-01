@@ -17,7 +17,7 @@ abstract class CoffeeShop {
 
 @inject
 class CoffeeMaker {
-  CoffeeMaker(this.heater, this.pump);
+  CoffeeMaker(this.heater, this.pump, {int bla});
   final ElectricHeater heater;
   final Pump pump;
 }

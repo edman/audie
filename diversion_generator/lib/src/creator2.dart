@@ -11,12 +11,24 @@ import 'package:meta/meta.dart';
 /// annotated with `@component`.
 @immutable
 abstract class Creator {
-  const Creator(this.function, this.dependencies);
+  const Creator(this.function);
   final FunctionTypedElement function;
-  final Iterable<DartType> dependencies;
+
+  DartType get createdType => function.returnType;
+
+  Iterable<ParameterElement> get _params => function.parameters;
+
+  Iterable<DartType> get dependencies =>
+      _params.where((p) => p.isNotOptional).map((p) => p.type);
+
+  Iterable<DartType> get optionalPositionals =>
+      _params.where((p) => p.isOptionalPositional).map((p) => p.type);
+
+  Iterable<ParameterElement> get optionalNamed =>
+      _params.where((p) => p.isNamed);
 
   /// A creation method is said to be simple if it takes no parameters.
-  bool get isSimple => function.parameters.isEmpty;
+  bool get isSimple => _params.isEmpty;
 
   /// The name of this creator as it should be invoked.
   String get name;
@@ -28,7 +40,8 @@ abstract class Creator {
   String get helperName => isSimple ? name : '_create${function.returnType}';
 
   @override
-  String toString() => '$name${dependencies}';
+  String toString() =>
+      '$name($dependencies,[$optionalPositionals],$optionalNamed)';
 }
 
 /// Simple creator for constructors.
@@ -36,10 +49,7 @@ abstract class Creator {
 /// Constructor creators are registered in the object graph through `@inject`
 /// annotations.
 class Constructor extends Creator {
-  const Constructor(
-    FunctionTypedElement function,
-    Iterable<DartType> dependencies,
-  ) : super(function, dependencies);
+  const Constructor(FunctionTypedElement function) : super(function);
 
   @override
   String get name => '${function.returnType}';
@@ -47,15 +57,10 @@ class Constructor extends Creator {
 
 /// Creator for provider methods.
 ///
-/// Provider methods are registered in the object graph through in classes
+/// Provider methods are registered in the object graph through classes
 /// annotated with `@component`.
 class Provider extends Creator {
-  const Provider(
-    this.scope,
-    MethodElement function,
-    Iterable<DartType> dependencies,
-  ) : super(function, dependencies);
-
+  const Provider(this.scope, MethodElement function) : super(function);
   final ClassElement scope;
 
   @override

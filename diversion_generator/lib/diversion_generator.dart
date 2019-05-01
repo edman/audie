@@ -7,6 +7,8 @@ import 'package:build/build.dart';
 import 'package:diversion/diversion.dart';
 import 'package:diversion_generator/src/creator.dart';
 import 'package:diversion_generator/src/engine.dart';
+import 'package:diversion_generator/src/engine2.dart';
+import 'package:diversion_generator/src/model.dart';
 import 'package:source_gen/source_gen.dart';
 
 final engine = DepEngine();
@@ -15,28 +17,43 @@ final injectType = TypeChecker.fromRuntime(inject.runtimeType);
 final componentType = TypeChecker.fromRuntime(component.runtimeType);
 
 class DiversionGenerator extends Generator {
-  Future<String> generate(LibraryReader library, BuildStep buildStep) async {
+  Future<String> generate(LibraryReader library, BuildStep buildStep) {
+    // Engine.instance
+    // final source = Source(library.element.displayName);
+    print(library.element.identifier);
+    final source = Source(library.element.identifier);
+    Engine.instance.onSource.add(source);
+
     // Visit all constructors annotated with @inject.
     for (final clazz in library.allElements.whereType<ClassElement>())
       for (final constructor in clazz.constructors)
         if (injectType.hasAnnotationOf(constructor))
-          _processInjectConstructor(constructor);
+          // _processInjectConstructor(constructor);
+          source.onInject.add(constructor);
     // Visit all classes annotated with @inject.
     library
         .annotatedWith(injectType)
-        .where((a) => a.element is ClassElement)
-        .forEach((annotated) => _processInjectClass(annotated.element));
+        // .where((a) => a.element is ClassElement)
+        // .forEach((annotated) => _processInjectClass(annotated.element));
+        .map((a) => a.element)
+        .whereType<ClassElement>()
+        .expand((c) => c.constructors)
+        .forEach(source.onInject.add);
+
     // Visit all classes annotated with @component.
     final components = library
         .annotatedWith(componentType)
-        .where((a) => a.element is ClassElement);
+        .map((a) => a.element)
+        .whereType<ClassElement>()
+        .forEach(source.onComponent.add);
 
-    String out = '';
-    for (final annotated in components)
-      out += await _generateComponent(annotated.element as ClassElement);
+    // String out = '';
+    // for (final annotated in components)
+    //   out += await _generateComponent(annotated.element as ClassElement);
 
-    log('\n$out');
-    return out;
+    // log('\n$out');
+    // source.done();
+    return null;
   }
 }
 
