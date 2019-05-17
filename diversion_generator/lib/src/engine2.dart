@@ -83,9 +83,6 @@ class ComponentStatus {
   final List<Creator> reachableCreators;
   final ObjectGraph graph;
 
-  List<DartType> get _reachableTypes =>
-      reachableCreators.map((c) => c.createdType).toList();
-
   bool get isSatisfiable =>
       graph.isSatisfiable;
 
