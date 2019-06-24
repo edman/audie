@@ -1,28 +1,28 @@
 
 # Audie
 
-Developer-centric dependency injection library for dart.
+Automatic dependency injection engine for dart.
 
 ----
 
 ## Warning, this package is still in alpha
 
-It works, I encourage you try it out and let me know of any problems or feature
-requests by filing an issue. See the known caveats section below.
+It works** but see the known caveats section below.
 
 ## Introduction
 
-Audie is a minimalist, lightweight, compile time dependency injection
-library based on source generation.
+Audie is a minimalist, lightweight, compile time dependency injection engine
+based on source generation.
 
-It analyses your code with the help of a few simple annotations, and generates
-only the methods necessary to construct the objects you're interested in.
+It understands your code with the help of a few simple annotations, and
+generates only the methods necessary to construct the objects you're interested
+in.
 
 The generated source is designed to be understandable by humans. Much like the
 code you'd write by hand.
 
 Audie is a pure dart package. It works with Flutter, Angular, or any
-project using dart really.
+project using dart.
 
 ## Installation
 
@@ -63,12 +63,12 @@ Audie interacts with your project in three ways:
 one constructor, so we can use inject on the class as well.
 - Abstract methods in a class annotated with `@component`. These specify what
   objects you want to access. Audie will extend this class and implement
-its abstract methods based on the types your marked with inject.
+its abstract methods based on the types you marked with inject.
 - Concrete methods in `@component` classes. Sometimes your classes will depend
   on types you can't mark with inject. Audie will also look into concrete
 methods to learn how to create new types.
 
-That's all. Two annotations. Period. The code below shows a complete sample of
+That is all. Two annotations. Period. The code below shows a complete sample of
 how these concepts come together.
 
 ```dart
@@ -127,44 +127,6 @@ Finally, this can be used to create an instance of `CoffeeMaker` as easily as:
 final maker = CoffeeShop().maker();
 ```
 
-## Dependency injection
-
-Dependency injection leverages ideas of inversion of control, where your
-constructors take all objects it needs to set itself up by parameter, as
-opposed to trying to create or find these objects inside the constructor body.
-This has many advantages. Your code becomes more *modular*, less *decoupled*,
-more *testable*, and more *extensible*.
-
-The downside of dependency injection is that constructing classes becomes more
-difficult. If `CofeeMaker` took no arguments and just figured out how to create
-a `Pump` by itself, creating it would be as easy as `CoffeeMaker()`.  While now
-with dependency injection you need to find a `Pump` first by yourself, and then
-it pass it to `CofeeMaker` constructor. This kind of code is mostly mindless
-boilerplate, and your time as a developer could be better spent.
-
-That's where an automatic dependency injection library, like Audie, comes
-in. You configure the library by letting it know what your class structure
-looks like. In Audie you do that through `@inject` annotations and provider
-methods in `@components`. From that Audie is able to create all the
-mindless boilerplate for you.
-
-It unites the best of both worlds, since now you can enjoy the advantages of
-decoupling and testability provided by dependency inversion, while at the same
-time creating objects easily through the generated source.
-
-## Design
-
-Audie was designed to be
-- *Simple*: Easy to use in both small and large projects.
-- *Understandable*:  No reflection dark magic, you're always welcome to read
-  the generated source.
-- *Helpful*: When things go wrong, you should be given actionable feedback
-  along with a comprehensive explanation of the problem.
-- *Useful*: Saves time and improves code organization,
-
-In order to fulfil these objective Audie purposely drops support to many
-features you might be used to from elsewhere.
-
 ## Useful snippets
 
 There's some boilerplate you need to write for your components. Luckily you can automate
@@ -199,7 +161,16 @@ And this one for vscode:
 - Source generation hangs and never finishes.
   - Reason: Audie doesn't know how to build one of the types you need due
     to a missing `@inject` or provider method in the `@component`.
-  - Workaround: See the source gen logs to figure out what type is missing.
+    - Workaround: Make sure all necessary types are either annotated with
+    `@inject` or have a provider method. The source gen logs may help figure
+    out what type is missing.
+  - Reason: A constructor has changed or moved to a different file and audie's
+  internal data structures are out of sync.
+    - Workaround: Clean the build runner and generate sources again.
+    ```
+    $ flutter packages pub run build_runner clean
+    $ flutter packages pub run build_runner watch
+    ```
 
 ## TODO
 
@@ -216,7 +187,6 @@ And this one for vscode:
 - Error on dynamic parameters to inject constructors or provider methods.
 - Error on missing boilerplate in components.
 - Sample showcasing testability.
-- Some tests?
 - Configure CI.
 
 ## TODO tests
