@@ -1,17 +1,17 @@
 import 'package:build/build.dart';
 import 'package:build_test/build_test.dart';
-import 'package:diversion_generator/diversion_generator.dart';
+import 'package:audie_generator/audie_generator.dart';
 import 'package:logging/logging.dart';
 import 'package:source_gen/source_gen.dart';
 
 const pkgName = 'pkg';
 const fileName = 'file';
 
-final builder = PartBuilder([DiversionGenerator()], '.g.dart');
+final builder = PartBuilder([AudieGenerator()], '.g.dart');
 
 Future<String> generate(String source) async {
   final srcs = <String, String>{
-    'diversion|lib/diversion.dart': diversionSource,
+    'audie|lib/audie.dart': audieSource,
     '$pkgName|lib/$fileName.dart': source,
   };
 
@@ -34,7 +34,7 @@ Future<String> generate(String source) async {
 }
 
 String component([String body = '']) => '''
-  import 'package:diversion/diversion.dart';
+  import 'package:audie/audie.dart';
   part '$fileName.g.dart';
 
   @component
@@ -47,8 +47,8 @@ String component([String body = '']) => '''
 String componentBoilerplate([String className = 'Component']) =>
     '$className._();\nfactory $className() = _\$$className;';
 
-const diversionSource = r'''
-library diversion;
+const audieSource = r'''
+library audie;
 
 const inject = _Inject();
 const component = _Component();

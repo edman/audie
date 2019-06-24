@@ -1,5 +1,5 @@
 
-# Diversion
+# Audie
 
 Developer-centric dependency injection library for dart.
 
@@ -12,7 +12,7 @@ requests by filing an issue. See the known caveats section below.
 
 ## Introduction
 
-Diversion is a minimalist, lightweight, compile time dependency injection
+Audie is a minimalist, lightweight, compile time dependency injection
 library based on source generation.
 
 It analyses your code with the help of a few simple annotations, and generates
@@ -21,22 +21,22 @@ only the methods necessary to construct the objects you're interested in.
 The generated source is designed to be understandable by humans. Much like the
 code you'd write by hand.
 
-Diversion is a pure dart package. It works with Flutter, Angular, or any
+Audie is a pure dart package. It works with Flutter, Angular, or any
 project using dart really.
 
 ## Installation
 
-You'll need `diversion` as a regular dependency in your pubspec, as well as
-`diversion_generator` and `build_runner` under dev dependencies.
+You'll need `audie` as a regular dependency in your pubspec, as well as
+`audie_generator` and `build_runner` under dev dependencies.
 
 ```yaml
 dependencies:
-  # diversion contains the two annotations we use.
-  diversion: ^0.0.1
+  # audie contains the two annotations we use.
+  audie: ^0.0.1
 
 dev_dependencies:
-  # diversion_generator is the package that generates source for you.
-  diversion_generator: ^0.0.1
+  # audie_generator is the package that generates source for you.
+  audie_generator: ^0.0.1
   # build_runner is neeeded to trigger source generation.
   build_runner: ^1.0.0
 ```
@@ -56,16 +56,16 @@ $ flutter packages pub run build_runner watch
 
 ## Usage
 
-Diversion interacts with your project in three ways:
+Audie interacts with your project in three ways:
 
-- `@inject` annotations in constructors. They tell Diversion how to create
+- `@inject` annotations in constructors. They tell Audie how to create
   objects of that class. In the example below, the `CoffeeMaker` class has only
 one constructor, so we can use inject on the class as well.
 - Abstract methods in a class annotated with `@component`. These specify what
-  objects you want to access. Diversion will extend this class and implement
+  objects you want to access. Audie will extend this class and implement
 its abstract methods based on the types your marked with inject.
 - Concrete methods in `@component` classes. Sometimes your classes will depend
-  on types you can't mark with inject. Diversion will also look into concrete
+  on types you can't mark with inject. Audie will also look into concrete
 methods to learn how to create new types.
 
 That's all. Two annotations. Period. The code below shows a complete sample of
@@ -87,7 +87,7 @@ abstract class CoffeeShop {
 }
 
 class CoffeeMaker {
-  // Diversion will know to use this constructor.
+  // Audie will know to use this constructor.
   @inject
   CoffeeMaker(this.pump);
   final Pump pump;
@@ -100,7 +100,7 @@ abstract class Pump {}
 class Thermosiphon implements Pump {}
 ```
 
-And then from the code above, Diversion generates the following source.
+And then from the code above, Audie generates the following source.
 
 ```dart
 class _$CoffeeShop extends CoffeeShop {
@@ -142,10 +142,10 @@ with dependency injection you need to find a `Pump` first by yourself, and then
 it pass it to `CofeeMaker` constructor. This kind of code is mostly mindless
 boilerplate, and your time as a developer could be better spent.
 
-That's where an automatic dependency injection library, like Diversion, comes
+That's where an automatic dependency injection library, like Audie, comes
 in. You configure the library by letting it know what your class structure
-looks like. In Diversion you do that through `@inject` annotations and provider
-methods in `@components`. From that Diversion is able to create all the
+looks like. In Audie you do that through `@inject` annotations and provider
+methods in `@components`. From that Audie is able to create all the
 mindless boilerplate for you.
 
 It unites the best of both worlds, since now you can enjoy the advantages of
@@ -154,7 +154,7 @@ time creating objects easily through the generated source.
 
 ## Design
 
-Diversion was designed to be
+Audie was designed to be
 - *Simple*: Easy to use in both small and large projects.
 - *Understandable*:  No reflection dark magic, you're always welcome to read
   the generated source.
@@ -162,7 +162,7 @@ Diversion was designed to be
   along with a comprehensive explanation of the problem.
 - *Useful*: Saves time and improves code organization,
 
-In order to fulfil these objective Diversion purposely drops support to many
+In order to fulfil these objective Audie purposely drops support to many
 features you might be used to from elsewhere.
 
 ## Useful snippets
@@ -181,7 +181,7 @@ abstract class $NAME$ {
 And this one for vscode:
 
 ```json
-  "Diversion component class": {
+  "Audie component class": {
     "prefix": "component",
     "body": [
       "@component",
@@ -197,7 +197,7 @@ And this one for vscode:
 ## Known caveats
 
 - Source generation hangs and never finishes.
-  - Reason: Diversion doesn't know how to build one of the types you need due
+  - Reason: Audie doesn't know how to build one of the types you need due
     to a missing `@inject` or provider method in the `@component`.
   - Workaround: See the source gen logs to figure out what type is missing.
 

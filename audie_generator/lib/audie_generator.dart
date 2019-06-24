@@ -4,9 +4,9 @@ import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:async/async.dart';
 import 'package:build/build.dart';
-import 'package:diversion/diversion.dart';
-import 'package:diversion_generator/src/creator.dart';
-import 'package:diversion_generator/src/engine.dart';
+import 'package:audie/audie.dart';
+import 'package:audie_generator/src/creator.dart';
+import 'package:audie_generator/src/engine.dart';
 import 'package:source_gen/source_gen.dart';
 
 final engine = DepEngine();
@@ -14,7 +14,7 @@ final engine = DepEngine();
 final injectType = TypeChecker.fromRuntime(inject.runtimeType);
 final componentType = TypeChecker.fromRuntime(component.runtimeType);
 
-class DiversionGenerator extends Generator {
+class AudieGenerator extends Generator {
   Future<String> generate(LibraryReader library, BuildStep buildStep) async {
     // Visit all constructors annotated with @inject.
     for (final clazz in library.allElements.whereType<ClassElement>())
@@ -101,7 +101,7 @@ Stream<Creator> _processComponentClass(ClassElement element) {
   // Concrete methods in components are considered providers.
   for (final method in element.methods.where((m) => !m.isAbstract))
     _processProviderMethod(element, method);
-  // Abstract methods in components need to be implemented by diversion.
+  // Abstract methods in components need to be implemented by audie.
   return StreamGroup.merge(element.methods
       .where((m) => m.isAbstract)
       .map((m) => _processComponentFunction(m)));

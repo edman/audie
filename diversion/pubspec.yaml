@@ -1,9 +1,0 @@
-name: diversion
-version: 0.0.1
-author: Edman Anjos <edmanjos@gmail.com>
-description: Compile-time dependency injection library for Dart.
-homepage: http://github.com/edman/diversion
-
-environment:
-  sdk: '>=2.0.0 <3.0.0'
-

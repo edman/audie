@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
-import 'package:diversion_generator/src/creator.dart';
+import 'package:audie_generator/src/creator.dart';
 
 class DepEngine {
   final _registry = Map<DartType, Creator>();

@@ -1,0 +1,9 @@
+name: audie
+version: 0.0.1
+author: Edman Anjos <edmanjos@gmail.com>
+description: Automatic dependency injection engine for Dart.
+homepage: http://github.com/edman/audie
+
+environment:
+  sdk: '>=2.0.0 <3.0.0'
+

@@ -1,4 +1,4 @@
-import 'package:diversion/diversion.dart';
+import 'package:audie/audie.dart';
 
 @inject
 class ElectricHeater {}

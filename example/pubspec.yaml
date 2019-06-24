@@ -1,16 +1,16 @@
 name: example
 version: 0.0.1
-description: Compile-time dependency injection example using diversion.
+description: Compile-time dependency injection example using audie.
 
 environment:
   sdk: '>=2.0.0 <3.0.0'
 
 dependencies:
-  diversion:
-    path: ../diversion
+  audie:
+    path: ../audie
 
 dev_dependencies:
-  diversion_generator:
-    path: ../diversion_generator
+  audie_generator:
+    path: ../audie_generator
   build_runner: ^1.0.0
 

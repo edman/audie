@@ -1,15 +1,15 @@
-name: diversion_generator
+name: audie_generator
 version: 0.0.1
 author: Edman Anjos <edmanjos@gmail.com>
-description: Compile-time dependency injection library for Dart.
-homepage: http://github.com/edman/diversion
+description: Automatic dependency injection engine for Dart.
+homepage: http://github.com/edman/audie
 
 environment:
   sdk: '>=2.1.0 <3.0.0'
 
 dependencies:
-  diversion:
-    path: ../diversion
+  audie:
+    path: ../audie
   source_gen: ^0.9.0
   analyzer: '>=0.33.3 <0.36.0'
   analyzer_plugin: '>=0.0.1-alpha.5 <0.0.1-alpha.8'
