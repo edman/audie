@@ -2,7 +2,7 @@ import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:meta/meta.dart';
 
-/// Creators represent nodes in the object graph. They are funtion-like
+/// Creators represent nodes in the object graph. They are function-like
 /// elements that can be called, with or without parameters, to create a new
 /// object.
 ///
