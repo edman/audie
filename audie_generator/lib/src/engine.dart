@@ -3,9 +3,11 @@ import 'dart:async';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:audie_generator/src/creator.dart';
+import 'package:audie_generator/src/parser.dart';
 
 class DepEngine {
   final _registry = Map<DartType, Creator>();
+
   Map<DartType, Creator> get registry => _registry;
 
   final _blockers = Map<DartType, Completer<Creator>>();
@@ -15,8 +17,8 @@ class DepEngine {
       : _blockers.putIfAbsent(type, () => Completer<Creator>()).future;
 
   void _unblock(DartType type, Creator creator) {
-      _blockers[type]?.complete(creator);
-      _blockers.remove(type);
+    _blockers[type]?.complete(creator);
+    _blockers.remove(type);
   }
 
   void _register(DartType type, Creator creator) {
@@ -53,4 +55,13 @@ class DepEngine {
 
   @override
   String toString() => '$_registry';
+}
+
+class Engine {
+  final states = Map<String, State>();
+
+  State get state => State.fromStates(states.values);
+
+  @override
+  String toString() => '$states';
 }

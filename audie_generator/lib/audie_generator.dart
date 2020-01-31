@@ -3,14 +3,17 @@ import 'dart:async';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:async/async.dart';
-import 'package:build/build.dart';
 import 'package:audie/audie.dart';
 import 'package:audie_generator/src/creator.dart';
 import 'package:audie_generator/src/engine.dart';
 import 'package:audie_generator/src/errors.dart';
+import 'package:audie_generator/src/parser.dart';
+import 'package:audie_generator/src/solver.dart';
+import 'package:build/build.dart';
 import 'package:source_gen/source_gen.dart';
 
 final engine = DepEngine();
+final eng = Engine();
 
 final injectType = TypeChecker.fromRuntime(inject.runtimeType);
 final componentType = TypeChecker.fromRuntime(component.runtimeType);
@@ -18,7 +21,7 @@ final componentType = TypeChecker.fromRuntime(component.runtimeType);
 class AudieGenerator extends Generator {
   Future<String> generate(LibraryReader library, BuildStep buildStep) async {
     final outs = StringBuffer();
-    log.info('HERE: starting on ${library.element.name}');
+    log.info('HERE: starting on "${library.element.identifier}"');
 
     // Check preconditions.
     try {
@@ -34,7 +37,7 @@ class AudieGenerator extends Generator {
       return outs.toString();
     }
     // Visit all constructors annotated with @inject.
-    for (final clazz in library.allElements.whereType<ClassElement>())
+    for (final clazz in library.classes)
       for (final constructor in clazz.constructors)
         if (injectType.hasAnnotationOf(constructor))
           _processInjectConstructor(constructor);
@@ -48,14 +51,25 @@ class AudieGenerator extends Generator {
         .annotatedWith(componentType)
         .where((a) => a.element is ClassElement);
 
-    // String out = '';
-    for (final annotated in components)
-      // out += await _generateComponent(annotated.element as ClassElement);
-      outs.writeln(await _generateComponent(annotated.element as ClassElement));
+//     String out = '';
+//     for (final annotated in components)
+//     out += await _generateComponent(annotated.element as ClassElement);
+//     outs.writeln(await _generateComponent(annotated.element as ClassElement));
 
     // log('\n$out');
     // return out;
-    logs('\n$outs');
+    // logs('\n$outs');
+
+    eng.states[library.element.identifier] = State.fromLibrary(library);
+    final state = eng.state;
+    logs('\n\nidentifier=${library.element.identifier}');
+    logs('\n\n${state}');
+    logs('\n\nsolvable=${state.solvable}');
+
+    logs('\n\nwill call solve');
+    for (final annotated in components.map((c) => c.element).whereType<ClassElement>())
+      outs.writeln(solve(state, AtComponent(annotated)));
+    logs('\nWOW\n$outs');
     return outs.toString();
   }
 }
