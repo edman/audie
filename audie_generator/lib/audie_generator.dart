@@ -18,6 +18,8 @@ final eng = Engine();
 final injectType = TypeChecker.fromRuntime(inject.runtimeType);
 final componentType = TypeChecker.fromRuntime(component.runtimeType);
 
+final stateblabs = StateStreamed();
+
 class AudieGenerator extends Generator {
   Future<String> generate(LibraryReader library, BuildStep buildStep) async {
     final outs = StringBuffer();
@@ -70,6 +72,9 @@ class AudieGenerator extends Generator {
     for (final annotated in components.map((c) => c.element).whereType<ClassElement>())
       outs.writeln(solve(state, AtComponent(annotated)));
     logs('\nWOW\n$outs');
+
+    stateblabs.libraries.add(library);
+    logs('solving "${library.element.identifier}": ${await stateblabs.solveLibrary(library)}');
     return outs.toString();
   }
 }
