@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:audie/audie.dart';
+import 'package:code_builder/code_builder.dart';
+import 'package:dart_style/dart_style.dart';
 import 'package:meta/meta.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:source_gen/source_gen.dart';
@@ -38,21 +40,22 @@ class StateStreamed {
   Stream<Map<String, List<AtInject>>> injectsPerLibrary;
   Stream<List<AtInject>> _injects;
 
-  Future<String> solveLibrary(LibraryReader library) {
+  Future<String> solveLibrary(LibraryReader library) async {
     final components = library.classes
         .where((clazz) => componentType.hasAnnotationOf(clazz))
         .map((clazz) => AtComponent(clazz));
 
-    print('solveLibrary components=$components');
     if (components.isEmpty) return Future.value('');
 
-//    solveComponent(components.first);
-    return Future.wait<String>(components.map((c) => solveComponent(c)))
-        .then((gen) => gen.join('\n\n'))
-        .catchError((error, st) => '// Error: $error\n$st');
+    final classes =
+        await Future.wait<Class>(components.map((c) => solveComponent(c)));
+
+    final lib = Library((b) => b..body.addAll(classes));
+    return DartFormatter().format(lib.accept(DartEmitter()).toString());
   }
 
-  Future<String> solveComponent(AtComponent component) {
+  Future<Class> solveComponent(AtComponent component) {
+    Object error;
     return _injects
         .timeout(Duration(seconds: 5))
         .doOnError((error, st) => '// Error: $error\n$st')
@@ -61,27 +64,62 @@ class StateStreamed {
                 .asStream()
                 .handleError((error, st) =>
                     print('componentWithInjects error: $error\n$st')))
-        .doOnData((output) => print('Sequence:\n$output'))
-        .where((output) => output != null)
+        .doOnData((output) => print('output before null=$output'))
         .first;
   }
 
-  Future<String> solveComponentWithInjects(
-      AtComponent component, List<AtInject> injects) {
+  Future<Class> solveComponentWithInjects(
+      AtComponent component, List<AtInject> injects) async {
     final allCreators = providersAndConstructors(component, injects);
-    return Future.wait<String>(
-            component.abstracts.map((a) => solveAbstract(a, allCreators)))
-        .then((methods) => methods.join('\n\n'));
+
+    final methods = await Future.wait<Method>(
+        component.abstracts.map((a) => solveAbstract(a, allCreators)));
+
+    return Class((b) => b
+      ..name = '_\$${component.clazz.name}'
+      ..extend = refer(component.clazz.name)
+      ..constructors
+          .add(Constructor((b) => b..initializers.add(const Code('super._()'))))
+      ..methods.addAll(methods));
   }
 
-  Future<String> solveAbstract(
-      FunctionTypedElement abstract, List<FunctionTypedElement> allCreators) {
-    return ObjectGraph(allCreators)
-        .traverse(abstract.returnType)
-        .toList()
-        .then((recipe) => recipe.join('\n'));
+  Future<Method> solveAbstract(FunctionTypedElement abstract,
+      List<FunctionTypedElement> allCreators) async {
+    final a =
+        await ObjectGraph(allCreators).traverse(abstract.returnType).toList();
+
+    final deps = a.sublist(0, a.length - 1);
+    final Map<DartType, String> vars = Map.fromIterable(deps,
+        key: (d) => d.returnType, value: (d) => _variableName(d.returnType));
+    final ret = a.last;
+
+    final assignments =
+        deps.map((d) => 'final ${vars[d.returnType]} = ${_invokedName(d)}'
+            '(${d.parameters.map((p) => vars[p.type]).join(', ')});');
+    final returnLine = 'return ${_invokedName(ret)}'
+        '(${ret.parameters.map((p) => vars[p.type]).join(', ')});';
+    final body = assignments.followedBy([returnLine]);
+
+    return Method((b) => b
+      ..annotations.add(refer('override'))
+      ..name = abstract.name
+      ..returns = refer(abstract.returnType.name)
+      ..body = Code(body.join('\n')));
   }
 }
+
+String _invokedName(FunctionTypedElement f) {
+  if (f is ConstructorElement && f.name.isNotEmpty)
+    return '${f.returnType.name}.${f.name}';
+  else if (f is ConstructorElement)
+    return f.returnType.name;
+  else if (f is MethodElement && f.isStatic)
+    return '${f.enclosingElement.name}.${f.name}';
+  return f.name;
+}
+
+String _variableName(DartType type) =>
+    type.name[0].toLowerCase() + type.name.substring(1);
 
 class ObjectGraph {
   Map<DartType, FunctionTypedElement> graph;

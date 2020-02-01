@@ -74,8 +74,9 @@ class AudieGenerator extends Generator {
     logs('\nWOW\n$outs');
 
     stateblabs.libraries.add(library);
-    logs('solving "${library.element.identifier}": ${await stateblabs.solveLibrary(library)}');
-    return outs.toString();
+    final solution = await stateblabs.solveLibrary(library);
+    logs('solving "${library.element.identifier}":\n$solution');
+    return solution;
   }
 }
 
