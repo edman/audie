@@ -1,28 +1,28 @@
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
-import 'package:audie_generator/src/state.dart';
 import 'package:source_gen/source_gen.dart';
 
-void checkErrors(LibraryReader library) {
-  final errors = <String>[];
+class TooManyConstructors extends InvalidGenerationSourceError {
+  TooManyConstructors(ClassElement clazz)
+      : super(_tooManyConstructorsMessage(clazz));
+}
 
-  final injects = library
-      .annotatedWith(injectType)
-      .map((a) => a.element)
-      .whereType<ClassElement>();
+String _tooManyConstructorsMessage(ClassElement clazz) {
+  String msg =
+      'The class "${clazz.name}" is annotated with @inject but has more'
+      ' than one constructor/factory.\n\n';
 
-  injects.where((c) => c.constructors.length != 1).forEach((c) => errors.add(
-      '''The class ${c.name} is annotated with @inject but does not have exactly one
-constructor/factory. Possible solutions are:
-- Move the @inject annotation to one of the constructors/factories.
-- Remove unnecessary constructors/factories until there is only one left.
-'''));
+  msg +=
+      clazz.constructors.map((c) => spanForElement(c).highlight()).join('\n');
 
-  if (errors.isNotEmpty) {
-    final message = StringBuffer();
-    errors.asMap().forEach((i, e) => message.writeln('$i. $e'));
-    throw InvalidGenerationSourceError('$message');
-  }
+  msg += '\n\nClasses with @inject should have exactly one constructor. '
+      '''Possible solutions are:
+
+* Move the @inject annotation to one of the constructors/factories.
+
+* Remove unnecessary constructors/factories until there is only one left.
+''';
+  return msg;
 }
 
 class UnknownType extends InvalidGenerationSourceError {

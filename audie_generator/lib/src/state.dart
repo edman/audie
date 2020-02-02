@@ -21,8 +21,12 @@ bool hasComponent(Element element) => componentType.hasAnnotationOf(element);
 /// State is the "brain" of this package. It maintains all information necessary
 class State {
   State() {
-    _injectsPerLibrary = _libraries.scan((acc, library, _index) {
-      acc[library.element.identifier] = injectsOf(library);
+    _injectsPerLibrary = _libraries.scan((acc, library, index) {
+      try {
+        acc[library.element.identifier] = injectsOf(library);
+      } catch (_) {
+        if (index == _libraries.values.length - 1) rethrow;
+      }
       return acc;
     }, <String, List<AtInject>>{});
 
@@ -69,10 +73,12 @@ class State {
         .switchMap((latestInjects) =>
             _solveComponentWithInjects(component, latestInjects)
                 .asStream()
-                .handleError((error, st) => latestError = error))
+                .handleError((e) => latestError = e))
         .doOnData((output) => log.info('output=$output'))
-        .timeout(Duration(seconds: 1), onTimeout: (sink) => throw latestError)
-        .first;
+        .timeout(Duration(seconds: 1), onTimeout: (sink) {
+      sink.addError(latestError);
+      latestError = null;
+    }).first;
   }
 }
 
@@ -224,8 +230,11 @@ class AtInject {
         assert(!hasInject(clazz) || clazz.constructors.length == 1),
         assert(!hasInject(clazz) || !clazz.constructors.any(hasInject));
 
-  factory AtInject.fromClass(ClassElement clazz) =>
-      AtInject._(clazz, clazz.constructors.first);
+  factory AtInject.fromClass(ClassElement clazz) {
+    if (hasInject(clazz) && clazz.constructors.length > 1)
+      throw TooManyConstructors(clazz);
+    return AtInject._(clazz, clazz.constructors.first);
+  }
 
   factory AtInject.fromConstructor(ConstructorElement constructor) =>
       AtInject._(constructor.enclosingElement, constructor);
