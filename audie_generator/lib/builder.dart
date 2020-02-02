@@ -13,17 +13,10 @@ final state = State();
 class AudieGenerator extends Generator {
   Future<String> generate(LibraryReader library, BuildStep buildStep) async {
     try {
-      // Generate code.
-      final solution = await state.putLibrary(library);
-      if (solution.isNotEmpty)
-        log.info('solved "${library.element.identifier}":\n$solution');
-      else
-        log.info('solved "${library.element.identifier}": no code gen');
-
-      return solution;
+      return await state.putLibrary(library);
     } on InvalidGenerationSourceError catch (e, st) {
       log.warning(
-          'Error in AudieGenerator for ${library.element.source.fullName}.',
+          'Error in AudieGenerator for ${library.element.source.fullName}.\n',
           e,
           st);
       return _commented(e);

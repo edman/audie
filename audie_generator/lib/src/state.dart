@@ -21,28 +21,25 @@ bool hasComponent(Element element) => componentType.hasAnnotationOf(element);
 /// State is the "brain" of this package. It maintains all information necessary
 class State {
   State() {
-    _injectsPerLibrary = _libraries.scan((acc, library, index) {
-      try {
-        acc[library.element.identifier] = injectsOf(library);
-      } catch (_) {
-        if (index == _libraries.values.length - 1) rethrow;
-      }
+    _librariesById = _libraries.scan((acc, library, index) {
+      acc[library.element.identifier] = library;
       return acc;
-    }, <String, List<AtInject>>{});
+    }, <String, LibraryReader>{});
 
-    _injects =
-        _injectsPerLibrary.map((ipl) => ipl.values.expand((i) => i).toList());
+    _injects = _librariesById
+        .debounceTime(Duration(milliseconds: 100))
+        .map((libs) => libs.values.map(injectsOf).expand((i) => i));
   }
 
   /// Receives all libraries in the project. ReplaySubject is used to make sure
   /// we remember libraries seen before someone begins to listen on the stream.
   final _libraries = ReplaySubject<LibraryReader>();
 
-  /// Aggregates @inject annotated elements by library.
-  Stream<Map<String, List<AtInject>>> _injectsPerLibrary;
+  /// Aggregates the current libraries in a project.
+  Stream<Map<String, LibraryReader>> _librariesById;
 
-  /// List of all @inject annotated elements in all libraries.
-  Stream<List<AtInject>> _injects;
+  /// Enumerates all @inject annotated elements in all libraries.
+  Stream<Iterable<AtInject>> _injects;
 
   /// Introduces the given library into the current state, possibly replacing a
   /// previous version if it already existed.
@@ -69,21 +66,19 @@ class State {
   Future<Class> _solveComponent(AtComponent component) {
     Object latestError; // TODO change to Error instead of Object.
     return _injects
-        .doOnError((error, st) => '// Error: $error\n$st')
         .switchMap((latestInjects) =>
-            _solveComponentWithInjects(component, latestInjects)
-                .asStream()
-                .handleError((e) => latestError = e))
-        .doOnData((output) => log.info('output=$output'))
+            _solveComponentWithInjects(component, latestInjects).asStream())
+//        .doOnData((output) => log.info('output=$output'))
+        .handleError((e) => latestError = e)
         .timeout(Duration(seconds: 1), onTimeout: (sink) {
-      sink.addError(latestError);
+      sink.addError(latestError ?? TimeoutException('Something went wrong'));
       latestError = null;
     }).first;
   }
 }
 
 Future<Class> _solveComponentWithInjects(
-    AtComponent component, List<AtInject> injects) async {
+    AtComponent component, Iterable<AtInject> injects) async {
   final allCreators = providersAndConstructors(component, injects);
 
   final methods = await Future.wait<Method>(component.abstracts.map((a) =>
@@ -99,7 +94,7 @@ Future<Class> _solveComponentWithInjects(
 }
 
 Future<Method> _solveAbstract(FunctionTypedElement abstract,
-    List<FunctionTypedElement> allCreators) async {
+    Iterable<FunctionTypedElement> allCreators) async {
   final recipe =
       await ObjectGraph(allCreators).recipeFor(abstract.returnType).toList();
 
@@ -156,9 +151,9 @@ String _codeForRecipe(List<FunctionTypedElement> recipe) {
 class ObjectGraph {
   Map<DartType, FunctionTypedElement> _graph;
 
-  ObjectGraph(List<FunctionTypedElement> creators)
+  ObjectGraph(Iterable<FunctionTypedElement> creators)
       : _graph = Map.fromIterable(creators, key: (c) => c.returnType) {
-    log.warning('object graph: $_graph');
+    log.info('object graph: $_graph');
   }
 
   /// Returns a stream with the creators needed to instantiate an object of the
@@ -177,13 +172,13 @@ class ObjectGraph {
 }
 
 /// Returns all creators in the given component and list of inject constructors.
-List<FunctionTypedElement> providersAndConstructors(
-    AtComponent component, List<AtInject> injects) {
-  return component.providers + injects.map((i) => i.constructor).toList();
+Iterable<FunctionTypedElement> providersAndConstructors(
+    AtComponent component, Iterable<AtInject> injects) {
+  return component.providers.followedBy(injects.map((i) => i.constructor));
 }
 
 /// Returns all classes or constructors annotated with @inject in this library.
-List<AtInject> injectsOf(LibraryReader library) {
+Iterable<AtInject> injectsOf(LibraryReader library) {
   final classes = library.classes
       .where((clazz) => hasInject(clazz))
       .map((clazz) => AtInject.fromClass(clazz));
@@ -191,7 +186,7 @@ List<AtInject> injectsOf(LibraryReader library) {
       .expand((clazz) => clazz.constructors)
       .where((ctor) => hasInject(ctor))
       .map((ctor) => AtInject.fromConstructor(ctor));
-  return classes.followedBy(constructors).toList();
+  return classes.followedBy(constructors);
 }
 
 /// Returns all classes annotated with @component in this library.
@@ -205,16 +200,14 @@ class AtComponent {
   AtComponent(this.clazz)
       : providers = clazz.methods
             .where((m) => !m.isAbstract)
-            .cast<FunctionTypedElement>()
-            .toList(),
+            .cast<FunctionTypedElement>(),
         abstracts = clazz.methods
             .where((m) => m.isAbstract)
-            .cast<FunctionTypedElement>()
-            .toList();
+            .cast<FunctionTypedElement>();
 
   final ClassElement clazz;
-  final List<FunctionTypedElement> providers;
-  final List<FunctionTypedElement> abstracts;
+  final Iterable<FunctionTypedElement> providers;
+  final Iterable<FunctionTypedElement> abstracts;
 
   @override
   String toString() => 'AtComponent{${clazz.name}}';
