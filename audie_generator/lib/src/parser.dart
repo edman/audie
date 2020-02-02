@@ -23,12 +23,16 @@ List<AtInject> injectsOf(LibraryReader library) {
   return classes.followedBy(constructors).toList();
 }
 
+Iterable<AtComponent> componentsOf(LibraryReader library) => library.classes
+    .where((clazz) => componentType.hasAnnotationOf(clazz))
+    .map((clazz) => AtComponent(clazz));
+
 class StateStreamed {
   StateStreamed() {
     injectsPerLibrary = _libraries.scan((acc, library, index) {
       acc[library.element.identifier] = injectsOf(library);
       return acc;
-    }, Map<String, List<AtInject>>());
+    }, <String, List<AtInject>>{});
 
     _injects =
         injectsPerLibrary.map((ipl) => ipl.values.expand((i) => i).toList());
@@ -41,9 +45,7 @@ class StateStreamed {
   Stream<List<AtInject>> _injects;
 
   Future<String> solveLibrary(LibraryReader library) async {
-    final components = library.classes
-        .where((clazz) => componentType.hasAnnotationOf(clazz))
-        .map((clazz) => AtComponent(clazz));
+    final components = componentsOf(library);
 
     if (components.isEmpty) return Future.value('');
 
@@ -64,7 +66,7 @@ class StateStreamed {
                 .asStream()
                 .handleError((error, st) =>
                     print('componentWithInjects error: $error\n$st')))
-        .doOnData((output) => print('output before null=$output'))
+        .doOnData((output) => print('output=$output'))
         .first;
   }
 
@@ -145,79 +147,6 @@ class ObjectGraph {
 List<FunctionTypedElement> providersAndConstructors(
     AtComponent component, List<AtInject> injects) {
   return component.providers + injects.map((i) => i.constructor).toList();
-}
-
-class State {
-  final Iterable<AtInject> injects;
-  final Iterable<AtComponent> components;
-
-  Iterable<FunctionTypedElement> get providers =>
-      components.expand((c) => c.providers);
-
-  Iterable<FunctionTypedElement> get abstracts =>
-      components.expand((c) => c.abstracts);
-
-  State._(this.injects, this.components);
-
-  factory State.fromLibrary(LibraryReader library) {
-    // All classes annotated with @inject.
-    final injectClasses = library
-        .annotatedWith(injectType)
-        .map((a) => a.element)
-        .whereType<ClassElement>()
-        .map((e) => AtInject.fromClass(e));
-    // All constructors annotated with @inject.
-    final injectConstructors = <AtInject>[];
-    // for (final clazz in library.allElements.whereType<ClassElement>())
-    for (final clazz in library.classes)
-      for (final constructor in clazz.constructors)
-        if (injectType.hasAnnotationOf(constructor))
-          injectConstructors.add(AtInject.fromConstructor(constructor));
-    // All classes annotated with @component.
-    final componentClasses = library
-        .annotatedWith(componentType)
-        .map((a) => a.element)
-        .whereType<ClassElement>()
-        .map((e) => AtComponent(e));
-    // Gather relevant elements into a state object.
-    return State._(
-      injectClasses.followedBy(injectConstructors),
-      componentClasses,
-    );
-  }
-
-  factory State.fromStates(Iterable<State> states) {
-    final injects = states.expand((s) => s.injects);
-    final components = states.expand((s) => s.components);
-    return State._(injects, components);
-  }
-
-  Iterable<DartType> get requiredTypes {
-    final returnTypes = abstracts.map((a) => a.returnType);
-    final injectParameters =
-        injects.expand((i) => i.constructor.parameters.map((p) => p.type));
-    final providerParameters =
-        providers.expand((p) => p.parameters.map((p) => p.type));
-    return returnTypes
-        .followedBy(injectParameters)
-        .followedBy(providerParameters);
-  }
-
-  Set<DartType> get possibleTypes {
-    final injectTypes = injects.map((i) => i.constructor.returnType);
-    final providerTypes = providers.map((p) => p.returnType);
-    return Set.of(injectTypes.followedBy(providerTypes));
-  }
-
-  bool get solvable {
-    final required = requiredTypes;
-    final possible = possibleTypes;
-
-    return possible.containsAll(required);
-  }
-
-  @override
-  String toString() => 'State:\n--injects: $injects\n--components: $components';
 }
 
 @immutable
