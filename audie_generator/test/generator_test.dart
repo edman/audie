@@ -12,13 +12,13 @@ void main() {
       final generated = await generate(component('''
         String make();
         String provide() => 'use me';'''));
-      expect(generated, contains('String make() => provide()'));
+      expect(generated, contains('return provide()'));
     });
     test('uses static provider method', () async {
       final generated = await generate(component('''
         String make();
         static String provide() => 'use me';'''));
-      expect(generated, contains('String make() => Component.provide()'));
+      expect(generated, contains('return Component.provide()'));
     });
 
     test('uses injected class', () async {
@@ -26,7 +26,7 @@ void main() {
       @inject
       class MyType {}
       ''');
-      expect(generated, contains('MyType make() => MyType()'));
+      expect(generated, contains('return MyType()'));
     });
     test('uses injected constructor', () async {
       final generated = await generate('''${component('MyType make();')}
@@ -37,7 +37,7 @@ void main() {
         MyType(String nothing) {}
       }
       ''');
-      expect(generated, contains('MyType make() => MyType()'));
+      expect(generated, contains('return MyType()'));
     });
     test('uses provider for interface', () async {
       final c = component('''
@@ -51,7 +51,8 @@ void main() {
       @inject
       class MyType implements MyInterface {}
       ''');
-      expect(generated, contains('MyInterface make() => _createMyInterface()'));
+      expect(generated, contains('= MyType'));
+      expect(generated, contains('return provide'));
     });
   });
 }

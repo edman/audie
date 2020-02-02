@@ -6,15 +6,24 @@ void main() {
   group('Error when', () {
     test('@inject class has multiple constructors', () async {
       final generated = await generate('''
+      ${component('SomeType make();')}
+      
       @inject
-      class MyType {
-        MyType();
+      class SomeType {
+        SomeType();
 
-        MyType(String nothing) {}
+        SomeType(String nothing) {}
       }
       ''');
-      print('HERE: generated="$generated"');
-      expect(generated, contains('Move the @inject annotation'));
+      expect(generated, contains('has more than one constructor'));
+    });
+    test('class is needed but has not @inject nor provider', () async {
+      final generated = await generate('''
+      ${component('SomeType make();')}
+      
+      class SomeType {}
+      ''');
+      expect(generated, contains('needed but we don\'t know how to make it'));
     });
   });
 }

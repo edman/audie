@@ -1,6 +1,6 @@
+import 'package:audie_generator/builder.dart';
 import 'package:build/build.dart';
 import 'package:build_test/build_test.dart';
-import 'package:audie_generator/builder.dart';
 import 'package:logging/logging.dart';
 import 'package:source_gen/source_gen.dart';
 
@@ -33,9 +33,13 @@ Future<String> generate(String source) async {
           writer.assets[AssetId(pkgName, 'lib/$fileName.g.dart')] ?? []);
 }
 
-String component([String body = '']) => '''
+const String testHeader = '''
   import 'package:audie/audie.dart';
   part '$fileName.g.dart';
+''';
+
+String component([String body = '']) => '''
+  $testHeader
 
   @component
   abstract class Component {
