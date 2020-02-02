@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:audie/audie.dart';
+import 'package:audie_generator/src/errors.dart';
 import 'package:build/build.dart';
 import 'package:code_builder/code_builder.dart';
 import 'package:dart_style/dart_style.dart';
@@ -64,14 +65,13 @@ class State {
   Future<Class> _solveComponent(AtComponent component) {
     Object latestError; // TODO change to Error instead of Object.
     return _injects
-        .timeout(Duration(seconds: 5))
         .doOnError((error, st) => '// Error: $error\n$st')
         .switchMap((latestInjects) =>
             _solveComponentWithInjects(component, latestInjects)
                 .asStream()
-                .handleError((error, st) =>
-                    print('componentWithInjects error: $error\n$st')))
+                .handleError((error, st) => latestError = error))
         .doOnData((output) => log.info('output=$output'))
+        .timeout(Duration(seconds: 1), onTimeout: (sink) => throw latestError)
         .first;
   }
 }
@@ -80,8 +80,9 @@ Future<Class> _solveComponentWithInjects(
     AtComponent component, List<AtInject> injects) async {
   final allCreators = providersAndConstructors(component, injects);
 
-  final methods = await Future.wait<Method>(
-      component.abstracts.map((a) => _solveAbstract(a, allCreators)));
+  final methods = await Future.wait<Method>(component.abstracts.map((a) =>
+      _solveAbstract(a, allCreators).catchError((e) => throw e.withAbstract(a),
+          test: (e) => e is UnknownType)));
 
   return Class((b) => b
     ..name = '_\$${component.clazz.name}'
@@ -151,13 +152,13 @@ class ObjectGraph {
 
   ObjectGraph(List<FunctionTypedElement> creators)
       : _graph = Map.fromIterable(creators, key: (c) => c.returnType) {
-    print('object graph: $_graph');
+    log.warning('object graph: $_graph');
   }
 
   /// Returns a stream with the creators needed to instantiate an object of the
   /// given type. The creators are returned in the order they should be called.
   Stream<FunctionTypedElement> recipeFor(DartType type) {
-    if (!_graph.containsKey(type)) return Stream.error('unknown type $type');
+    if (!_graph.containsKey(type)) return Stream.error(UnknownType(type));
 
     final creator = _graph[type];
     if (creator.parameters.isEmpty) return Stream.value(creator);

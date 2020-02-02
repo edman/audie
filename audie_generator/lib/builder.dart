@@ -27,13 +27,17 @@ class AudieGenerator extends Generator {
       return solution;
     } on InvalidGenerationSourceError catch (e, st) {
       final outs = _error(e.message);
+      log.info('error "${library.element.identifier}": ${e.message}');
       log.severe(
           'Error in AudieGenerator for '
           '${library.element.source.fullName}.',
           e,
           st);
       return outs;
+    } catch(e, st) {
+      log.severe('Error: $e\n$st\n${e.runtimeType}');
     }
+    return '// Probably should not reach here';
   }
 }
 
