@@ -1,6 +1,6 @@
 import 'package:build/build.dart';
 import 'package:build_test/build_test.dart';
-import 'package:audie_generator/audie_generator.dart';
+import 'package:audie_generator/builder.dart';
 import 'package:logging/logging.dart';
 import 'package:source_gen/source_gen.dart';
 

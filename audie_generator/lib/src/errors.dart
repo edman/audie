@@ -1,5 +1,5 @@
 import 'package:analyzer/dart/element/element.dart';
-import 'package:audie_generator/src/parser.dart';
+import 'package:audie_generator/src/state.dart';
 import 'package:source_gen/source_gen.dart';
 
 void checkErrors(LibraryReader library) {
