@@ -2,21 +2,13 @@ import 'dart:async';
 
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
-import 'package:audie/audie.dart';
+import 'package:audie_generator/src/annotation_utils.dart';
 import 'package:audie_generator/src/errors.dart';
 import 'package:build/build.dart';
 import 'package:code_builder/code_builder.dart';
 import 'package:dart_style/dart_style.dart';
-import 'package:meta/meta.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:source_gen/source_gen.dart';
-
-final injectType = TypeChecker.fromRuntime(inject.runtimeType);
-final componentType = TypeChecker.fromRuntime(component.runtimeType);
-
-bool hasInject(Element element) => injectType.hasAnnotationOf(element);
-
-bool hasComponent(Element element) => componentType.hasAnnotationOf(element);
 
 /// State is the "brain" of this package. It maintains all information necessary
 class State {
@@ -169,72 +161,4 @@ class ObjectGraph {
         .reduce((p1, p2) => p1.concatWith([p2]))
         .concatWith([Stream.value(creator)]).distinctUnique();
   }
-}
-
-/// Returns all creators in the given component and list of inject constructors.
-Iterable<FunctionTypedElement> providersAndConstructors(
-    AtComponent component, Iterable<AtInject> injects) {
-  return component.providers.followedBy(injects.map((i) => i.constructor));
-}
-
-/// Returns all classes or constructors annotated with @inject in this library.
-Iterable<AtInject> injectsOf(LibraryReader library) {
-  final classes = library.classes
-      .where((clazz) => hasInject(clazz))
-      .map((clazz) => AtInject.fromClass(clazz));
-  final constructors = library.classes
-      .expand((clazz) => clazz.constructors)
-      .where((ctor) => hasInject(ctor))
-      .map((ctor) => AtInject.fromConstructor(ctor));
-  return classes.followedBy(constructors);
-}
-
-/// Returns all classes annotated with @component in this library.
-Iterable<AtComponent> componentsOf(LibraryReader library) => library.classes
-    .where((clazz) => hasComponent(clazz))
-    .map((clazz) => AtComponent(clazz));
-
-/// Wrapper for classes annotated with @component.
-@immutable
-class AtComponent {
-  AtComponent(this.clazz)
-      : providers = clazz.methods
-            .where((m) => !m.isAbstract)
-            .cast<FunctionTypedElement>(),
-        abstracts = clazz.methods
-            .where((m) => m.isAbstract)
-            .cast<FunctionTypedElement>();
-
-  final ClassElement clazz;
-  final Iterable<FunctionTypedElement> providers;
-  final Iterable<FunctionTypedElement> abstracts;
-
-  @override
-  String toString() => 'AtComponent{${clazz.name}}';
-}
-
-/// Wrapper for classes and constructors annotated with @inject.
-@immutable
-class AtInject {
-  AtInject._(this.clazz, this.constructor)
-      : assert(clazz != null),
-        assert(constructor != null),
-        assert(hasInject(clazz) || hasInject(constructor)),
-        assert(!hasInject(clazz) || clazz.constructors.length == 1),
-        assert(!hasInject(clazz) || !clazz.constructors.any(hasInject));
-
-  factory AtInject.fromClass(ClassElement clazz) {
-    if (hasInject(clazz) && clazz.constructors.length > 1)
-      throw TooManyConstructors(clazz);
-    return AtInject._(clazz, clazz.constructors.first);
-  }
-
-  factory AtInject.fromConstructor(ConstructorElement constructor) =>
-      AtInject._(constructor.enclosingElement, constructor);
-
-  final ClassElement clazz;
-  final FunctionTypedElement constructor;
-
-  @override
-  String toString() => 'AtInject{$constructor}';
 }

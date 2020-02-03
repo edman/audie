@@ -1,6 +1,25 @@
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
+import 'package:audie_generator/src/annotation_utils.dart';
 import 'package:source_gen/source_gen.dart';
+
+class TooManyInjects extends InvalidGenerationSourceError {
+  TooManyInjects(ClassElement clazz) : super(_tooManyInjectsMessage(clazz));
+}
+
+String _tooManyInjectsMessage(ClassElement clazz) {
+  String msg = 'The class "${clazz.name}" has more than one constructor'
+      ' annotated with @inject...\n\n';
+
+  msg += clazz.constructors
+      .where(hasInject)
+      .map((c) => spanForElement(c).highlight())
+      .join('\n');
+
+  msg += '\n\nClasses should have at most one @inject annotated constructor.'
+      '\n\n* Consider removing @inject from some constructors.';
+  return msg + '\n';
+}
 
 class TooManyConstructors extends InvalidGenerationSourceError {
   TooManyConstructors(ClassElement clazz)
